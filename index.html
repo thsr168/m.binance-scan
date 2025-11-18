@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>幣安 USDT 永續合約掃圖工具</title>
+  <!-- 使用 4.2.3（有 addCandlestickSeries） -->
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050505;
+      color: #eee;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(6px);
+      padding: 10px 16px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h1 {
+      font-size: 16px;
+      margin: 0 12px 0 0;
+      white-space: nowrap;
+    }
+
+    label {
+      font-size: 14px;
+      margin-right: 4px;
+    }
+
+    select, button {
+      padding: 4px 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #111;
+      color: #eee;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    button:hover:not(:disabled) {
+      background: #222;
+    }
+
+    #status {
+      font-size: 12px;
+      color: #ccc;
+      margin-left: auto;
+      min-width: 220px;
+      text-align: right;
+    }
+
+    #page-info {
+      font-size: 12px;
+      color: #ccc;
+      margin-left: 4px;
+      white-space: nowrap;
+    }
+
+    /* ⭐ 手機版：一列一個 K 線圖，旁邊留點空間 */
+    #charts {
+      padding: 12px 12px 80px 12px; /* 底部多留一點空間避免貼頁尾 */
+      display: grid;
+      grid-template-columns: minmax(0, 1fr); /* 單欄 */
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .chart-wrapper {
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+      background: #080808;
+      width: 90%;
+      box-sizing: border-box;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .chart-title {
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #f5f5f5;
+    }
+
+    .chart-sub {
+      font-size: 11px;
+      color: #999;
+    }
+
+    .chart {
+      width: 100%;
+      height: 300px; /* K 線圖高度 400px */
+    }
+
+    .chart-pct {
+      margin-left: 6px;
+      font-size: 11px;
+    }
+
+    .chart-pct.up {
+      color: #16c784;
+    }
+
+    .chart-pct.down {
+      color: #ff4d4d;
+    }
+
+    .chart-pct.flat {
+      color: #aaaaaa;
+    }
+
+    /* ⭐ 底部分頁區 */
+    #bottom-nav {
+      padding: 10px 16px 16px 16px;
+      border-top: 1px solid #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      background: #050505;
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+
+    #bottom-page-info {
+      font-size: 12px;
+      color: #ccc;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>幣安合約掃圖工具</h1>
+
+    <label for="interval">時框：</label>
+<select id="interval">
+  <option value="15m">15 分 K</option>
+  <option value="30m">30 分 K</option>
+  <option value="1h">1 小時 K</option>
+  <option value="2h">2 小時 K</option>
+  <option value="4h">4 小時 K</option>
+</select>
+
+    <label for="sort">排序：</label>
+    <select id="sort">
+      <option value="symbol">依字母</option>
+      <option value="pct_desc">依 24h 漲跌幅</option>
+    </select>
+
+    <button id="scan-btn">掃圖</button>
+
+    <button id="prev-btn" disabled>上一頁</button>
+    <button id="next-btn" disabled>下一頁</button>
+    <span id="page-info">第 0 / 0 頁</span>
+
+    <div id="status">尚未掃圖</div>
+  </header>
+
+  <div id="charts"></div>
+
+  <!-- ⭐ 底部分頁按鈕 -->
+  <footer id="bottom-nav">
+    <button id="bottom-prev-btn" disabled>上一頁</button>
+    <span id="bottom-page-info">第 0 / 0 頁</span>
+    <button id="bottom-next-btn" disabled>下一頁</button>
+  </footer>
+
+  <script>
+    const BASE_URL = "https://fapi.binance.com";
+    const PAGE_SIZE = 100;     // 一頁 100 檔
+    const KLINE_LIMIT = 600;  // 一次抓 600 根 K 線
+
+    let allSymbols = [];
+    let tickerMap = {};       // symbol -> { pct: number }
+    let currentPage = 0;
+    let currentInterval = "15m";
+    let isLoading = false;
+    let currentLoadToken = 0;
+    let sortMode = "symbol";
+
+    const statusEl = document.getElementById("status");
+    const chartsEl = document.getElementById("charts");
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const pageInfoEl = document.getElementById("page-info");
+    const bottomPrevBtn = document.getElementById("bottom-prev-btn");
+    const bottomNextBtn = document.getElementById("bottom-next-btn");
+    const bottomPageInfoEl = document.getElementById("bottom-page-info");
+    const intervalSelect = document.getElementById("interval");
+    const sortSelect = document.getElementById("sort");
+
+    async function fetchFuturesSymbols() {
+      const res = await fetch(`${BASE_URL}/fapi/v1/exchangeInfo`);
+      if (!res.ok) {
+        throw new Error("取得 exchangeInfo 失敗，HTTP 狀態碼: " + res.status);
+      }
+      const data = await res.json();
+
+      const symbols = data.symbols
+        .filter(s =>
+          s.contractType === "PERPETUAL" &&
+          s.quoteAsset === "USDT" &&
+          s.status === "TRADING"
+        )
+        .map(s => s.symbol)
+        .sort();
+
+      return symbols;
+    }
+
+    async function fetch24hTickers(symbols) {
+      const res = await fetch(`${BASE_URL}/fapi/v1/ticker/24hr`);
+      if (!res.ok) {
+        throw new Error("取得 24hr ticker 失敗，HTTP 狀態碼: " + res.status);
+      }
+      const data = await res.json();
+      const set = new Set(symbols);
+      const map = {};
+      for (const t of data) {
+        if (!set.has(t.symbol)) continue;
+        const pct = parseFloat(t.priceChangePercent);
+        if (!Number.isNaN(pct)) {
+          map[t.symbol] = { pct };
+        }
+      }
+      return map;
+    }
+
+    async function fetchKlines(symbol, interval, limit = KLINE_LIMIT) {
+      const url = `${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`取得 ${symbol} K 線失敗，HTTP 狀態碼: ` + res.status);
+      }
+      const raw = await res.json();
+      return raw.map(c => ({
+        time: c[0] / 1000,
+        open: parseFloat(c[1]),
+        high: parseFloat(c[2]),
+        low: parseFloat(c[3]),
+        close: parseFloat(c[4]),
+        volume: parseFloat(c[5]),
+      }));
+    }
+
+    function calcMA(data, period) {
+      const result = [];
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = data[i].close;
+        sum += v;
+        if (i >= period) {
+          sum -= data[i - period].close;
+        }
+        if (i >= period - 1) {
+          result.push({
+            time: data[i].time,
+            value: sum / period,
+          });
+        }
+      }
+      return result;
+    }
+
+    function createChart(symbol, interval, container, data, changePct) {
+      const wrap = document.createElement("div");
+      wrap.className = "chart-wrapper";
+
+      const title = document.createElement("div");
+      title.className = "chart-title";
+
+      const left = document.createElement("span");
+      left.textContent = symbol;
+
+      if (typeof changePct === "number" && !Number.isNaN(changePct)) {
+        const pctSpan = document.createElement("span");
+        pctSpan.className = "chart-pct";
+        let cls = "flat";
+        if (changePct > 0.0001) cls = "up";
+        else if (changePct < -0.0001) cls = "down";
+        pctSpan.classList.add(cls);
+        const pctStr = (changePct >= 0 ? "+" : "") + changePct.toFixed(2) + "%";
+        pctSpan.textContent = pctStr;
+        left.appendChild(pctSpan);
+      }
+
+      const right = document.createElement("span");
+      right.className = "chart-sub";
+      right.textContent = interval;
+
+      title.appendChild(left);
+      title.appendChild(right);
+
+      const chartDiv = document.createElement("div");
+      chartDiv.className = "chart";
+
+      wrap.appendChild(title);
+      wrap.appendChild(chartDiv);
+      container.appendChild(wrap);
+
+      if (!window.LightweightCharts) {
+        console.error("LightweightCharts 尚未載入");
+        return;
+      }
+
+      const width = chartDiv.clientWidth || chartDiv.parentElement.clientWidth || 320;
+
+      const chart = LightweightCharts.createChart(chartDiv, {
+        width: width,
+        height: chartDiv.clientHeight || 400,
+        layout: {
+          background: { color: "#080808" },
+          textColor: "#dddddd",
+        },
+        grid: {
+          vertLines: { color: "#222" },
+          horzLines: { color: "#222" },
+        },
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        rightPriceScale: {
+          visible: true,
+        },
+      });
+
+      // K 棒顏色：上漲 #f7525f、下跌 #22ab94
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: "#f7525f",
+        borderUpColor: "#f7525f",
+        wickUpColor: "#f7525f",
+        downColor: "#22ab94",
+        borderDownColor: "#22ab94",
+        wickDownColor: "#22ab94",
+      });
+      candleSeries.setData(data);
+
+      // 成交量
+      const volumeSeries = chart.addHistogramSeries({
+        priceScaleId: "volume",
+        priceFormat: { type: "volume" },
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+
+      const volumeData = data.map(bar => ({
+        time: bar.time,
+        value: bar.volume,
+        color: bar.close >= bar.open ? "#f7525f" : "#22ab94",
+      }));
+
+      volumeSeries.setData(volumeData);
+
+      chart.priceScale("volume").applyOptions({
+        scaleMargins: {
+          top: 0.8,
+          bottom: 0,
+        },
+        alignLabels: false,
+      });
+
+      // 均線
+      const ma30Data = calcMA(data, 30);
+      const ma45Data = calcMA(data, 45);
+      const ma60Data = calcMA(data, 60);
+
+      const ma30Series = chart.addLineSeries({
+        color: "#f77c80", // 30MA
+        lineWidth: 1,
+        priceScaleId: "right",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const ma45Series = chart.addLineSeries({
+        color: "#ffb74d", // 45MA
+        lineWidth: 1,
+        priceScaleId: "right",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const ma60Series = chart.addLineSeries({
+        color: "#66bb6a", // 60MA
+        lineWidth: 1,
+        priceScaleId: "right",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+
+      if (ma30Data.length) ma30Series.setData(ma30Data);
+      if (ma45Data.length) ma45Series.setData(ma45Data);
+      if (ma60Data.length) ma60Series.setData(ma60Data);
+
+      // ⭐ 固定右邊預留空白，並預設看到約 120 根 K 棒
+      const totalBars = data.length;
+      if (totalBars > 0) {
+        const visibleBars = Math.min(120, totalBars);
+        const from = Math.max(0, totalBars - visibleBars - 10);
+        const to = totalBars + 10;
+        chart.timeScale().applyOptions({ rightOffset: 10 });
+        chart.timeScale().setVisibleLogicalRange({ from, to });
+      }
+
+      window.addEventListener("resize", () => {
+        const newWidth = chartDiv.clientWidth || chartDiv.parentElement.clientWidth || 320;
+        chart.applyOptions({ width: newWidth });
+      });
+    }
+
+    function applySorting() {
+      if (!allSymbols || allSymbols.length === 0) return;
+      if (sortMode === "symbol") {
+        allSymbols.sort();
+      } else if (sortMode === "pct_desc") {
+        allSymbols.sort((a, b) => {
+          const pa = tickerMap[a]?.pct ?? -Infinity;
+          const pb = tickerMap[b]?.pct ?? -Infinity;
+          return pb - pa;
+        });
+      }
+    }
+
+    function updatePaginationUI() {
+      const total = allSymbols.length;
+      const totalPages = total === 0 ? 0 : Math.ceil(total / PAGE_SIZE);
+
+      if (totalPages === 0) {
+        pageInfoEl.textContent = "第 0 / 0 頁";
+        bottomPageInfoEl.textContent = "第 0 / 0 頁";
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        bottomPrevBtn.disabled = true;
+        bottomNextBtn.disabled = true;
+        return;
+      }
+
+      const start = currentPage * PAGE_SIZE + 1;
+      const end = Math.min((currentPage + 1) * PAGE_SIZE, total);
+      const text = `第 ${currentPage + 1} / ${totalPages} 頁（${start}–${end} / ${total} 檔）`;
+
+      pageInfoEl.textContent = text;
+      bottomPageInfoEl.textContent = text;
+
+      const disablePrev = currentPage <= 0;
+      const disableNext = currentPage >= totalPages - 1;
+
+      prevBtn.disabled = disablePrev;
+      nextBtn.disabled = disableNext;
+      bottomPrevBtn.disabled = disablePrev;
+      bottomNextBtn.disabled = disableNext;
+    }
+
+    async function loadPage(pageIndex) {
+      const totalPages = Math.ceil(allSymbols.length / PAGE_SIZE);
+      if (pageIndex < 0 || pageIndex >= totalPages) return;
+
+      const token = ++currentLoadToken;
+      currentPage = pageIndex;
+      updatePaginationUI();
+
+      chartsEl.innerHTML = "";
+
+      const start = pageIndex * PAGE_SIZE;
+      const end = Math.min(start + PAGE_SIZE, allSymbols.length);
+      const targets = allSymbols.slice(start, end);
+
+      statusEl.textContent = `載入第 ${pageIndex + 1} 頁中…（${targets.length} 檔，interval: ${currentInterval}）`;
+
+      let done = 0;
+      for (const sym of targets) {
+        if (token !== currentLoadToken) {
+          console.log(`停止舊頁面載入：第 ${pageIndex + 1} 頁`);
+          return;
+        }
+
+        try {
+          const klines = await fetchKlines(sym, currentInterval, KLINE_LIMIT);
+          const pct = tickerMap[sym]?.pct ?? null;
+          if (klines.length > 0) {
+            createChart(sym, currentInterval, chartsEl, klines, pct);
+          } else {
+            console.warn(`symbol: ${sym} 無 K 線資料`);
+          }
+        } catch (err) {
+          console.error(`載入 ${sym} 失敗:`, err);
+        }
+        done++;
+        statusEl.textContent = `載入第 ${pageIndex + 1} 頁中… ${done} / ${targets.length}`;
+        await new Promise(r => setTimeout(r, 150));
+      }
+
+      statusEl.textContent = `第 ${pageIndex + 1} 頁載入完成（${done} 檔，interval: ${currentInterval}）。`;
+    }
+
+    async function scan() {
+      if (isLoading) return;
+      isLoading = true;
+      currentInterval = intervalSelect.value;
+      statusEl.textContent = "取得合約清單中…";
+
+      currentLoadToken++;
+
+      try {
+        if (allSymbols.length === 0) {
+          allSymbols = await fetchFuturesSymbols();
+          console.log("取得 symbols 數量:", allSymbols.length);
+        }
+
+        if (allSymbols.length === 0) {
+          statusEl.textContent = "沒有取得到任何 USDT 永續合約 symbol。";
+          isLoading = false;
+          updatePaginationUI();
+          return;
+        }
+
+        statusEl.textContent = "取得 24h 漲跌幅中…";
+        tickerMap = await fetch24hTickers(allSymbols);
+
+        sortMode = sortSelect.value;
+        applySorting();
+        updatePaginationUI();
+
+        statusEl.textContent = `共 ${allSymbols.length} 檔 USDT 永續合約，準備載入第 1 頁…`;
+        isLoading = false;
+        await loadPage(0);
+
+      } catch (err) {
+        console.error("掃圖發生錯誤:", err);
+        statusEl.textContent = "發生錯誤，請打開 F12 → Console 看錯誤訊息（可能是網路或 API 被擋）。";
+        isLoading = false;
+        updatePaginationUI();
+      }
+    }
+
+    document.getElementById("scan-btn").addEventListener("click", () => {
+      scan();
+    });
+
+    // 上方按鈕
+    prevBtn.addEventListener("click", async () => {
+      await loadPage(currentPage - 1);
+    });
+
+    nextBtn.addEventListener("click", async () => {
+      await loadPage(currentPage + 1);
+    });
+
+    // 下方按鈕
+    bottomPrevBtn.addEventListener("click", async () => {
+      await loadPage(currentPage - 1);
+    });
+
+    bottomNextBtn.addEventListener("click", async () => {
+      await loadPage(currentPage + 1);
+    });
+
+    sortSelect.addEventListener("change", async () => {
+      sortMode = sortSelect.value;
+      applySorting();
+      updatePaginationUI();
+      currentLoadToken++;
+      await loadPage(0);
+    });
+
+    updatePaginationUI();
+  </script>
+</body>
+</html>
