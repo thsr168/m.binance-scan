@@ -16,70 +16,85 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
     }
 
-    /* ======================== 首頁 ======================== */
 
+    /* ======================== 首頁 ======================== */
     #home {
       padding: 20px;
+      text-align: center;  /* 中央對齊 */
     }
 
     .home-title {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: bold;
-      margin-bottom: 20px;
+      margin: 40px 0 30px;
       text-align: center;
     }
 
     .home-row {
-      margin-bottom: 20px;
-      font-size: 18px;
+      margin-bottom: 30px;
+      font-size: 20px;
+      text-align: center;
     }
 
     select {
-      padding: 12px 14px;
-      font-size: 18px;
-      border-radius: 6px;
+      padding: 16px 20px;
+      font-size: 20px;
+      border-radius: 10px;
       border: 1px solid #666;
       background: #111;
       color: #eee;
-      width: 200px;
+      width: 80%;
+      max-width: 330px;
     }
 
+    /* ⭐ 首頁大按鈕（掃圖） */
     .big-btn {
-      padding: 16px 26px;
-      font-size: 22px;
-      border-radius: 8px;
-      border: none;
+      padding: 18px 26px;
+      font-size: 24px;
+      border-radius: 12px;
       background: #1e1e1e;
+      border: none;
       color: #eee;
-      width: 100%;
+      width: 80%;
+      max-width: 330px;
       margin-top: 20px;
       cursor: pointer;
+      transition: 0.15s;
     }
 
     .big-btn:hover {
       background: #333;
     }
 
-    /* ======================== K 線頁 ======================== */
 
+
+    /* ======================== K 線頁 ======================== */
     #chart-page {
-      display: none;
+      display: none; /* 開始隱藏，按掃圖後才顯示 */
     }
 
+    /* ⭐ K 線頁的置頂 header → 置中 + 字體縮小 */
     header {
       position: sticky;
       top: 0;
       z-index: 10;
       background: rgba(10, 10, 10, 0.95);
       backdrop-filter: blur(6px);
-      padding: 12px 16px;
+      padding: 10px 16px;
       border-bottom: 1px solid #333;
+
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 12px;
+      gap: 6px;
     }
 
+    /* ⭐ 置頂按鈕縮小字體 */
+    header button {
+      font-size: 14px !important;
+      padding: 6px 12px !important;
+    }
+
+    /* 全站按鈕（一般大小） */
     button {
       padding: 10px 16px;
       font-size: 18px;
@@ -98,6 +113,7 @@
       opacity: 0.4;
     }
 
+    /* K 線圖容器（單欄 + 下方有大空白） */
     #charts {
       padding: 12px 12px 80px 12px;
       display: grid;
@@ -105,7 +121,7 @@
       gap: 18px;
     }
 
-    /* ⭐ K 線卡片靠右（左邊空白可滑動） */
+    /* ⭐ K 線卡片靠右（左側留滑動空白） */
     .chart-wrapper {
       border: 1px solid #333;
       border-radius: 10px;
@@ -113,9 +129,10 @@
       background: #080808;
       width: 90%;
       box-sizing: border-box;
-      margin-left: auto;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+
+      margin-left: auto;   /* ⭐ 靠右 */
       margin-right: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
 
     .chart-title {
@@ -131,16 +148,19 @@
       color: #888;
     }
 
+    /* K 線 canvas 高度 */
     .chart {
       width: 100%;
       height: 300px;
     }
 
+    /* 漲跌幅顏色 */
     .chart-pct { margin-left: 6px; font-size: 12px; }
     .chart-pct.up { color: #16c784; }
     .chart-pct.down { color: #ff4d4d; }
     .chart-pct.flat { color: #aaa; }
 
+    /* ⭐ 下方分頁 */
     #bottom-nav {
       padding: 14px 16px;
       border-top: 1px solid #333;
@@ -157,8 +177,8 @@
 </head>
 <body>
 
-<!-- ======================== 首頁 ======================== -->
 
+<!-- ======================== 首頁 ======================== -->
 <div id="home">
   <div class="home-title">幣安合約掃圖工具</div>
 
@@ -181,21 +201,28 @@
     </select>
   </div>
 
-  <button class="big-btn" id="home-start">開始掃圖</button>
+  <!-- ⭐ 掃圖按鈕（大按鈕） -->
+  <button class="big-btn" id="home-start">掃圖</button>
 </div>
 
 
-<!-- ======================== K 線頁 ======================== -->
 
+
+<!-- ======================== K 線頁 ======================== -->
 <div id="chart-page">
+
   <header>
     <button onclick="goHome()">⬅ 返回首頁</button>
 
-    <button id="prev-btn" disabled>上一頁</button>
-    <button id="next-btn" disabled>下一頁</button>
-    <span id="page-info" style="font-size:12px;color:#aaa;">第 0 / 0 頁</span>
+    <!-- 置頂分頁按鈕 -->
+    <div style="display:flex; gap:8px;">
+      <button id="prev-btn" disabled>上一頁</button>
+      <button id="next-btn" disabled>下一頁</button>
+    </div>
 
-    <div id="status" style="margin-left:auto;font-size:12px;color:#aaa;">尚未掃圖</div>
+    <!-- 頁數 & 狀態 -->
+    <span id="page-info" style="font-size:12px;color:#aaa;">第 0 / 0 頁</span>
+    <div id="status" style="font-size:12px;color:#aaa;">尚未掃圖</div>
   </header>
 
   <div id="charts"></div>
@@ -205,461 +232,526 @@
     <span id="bottom-page-info" style="font-size:12px;color:#aaa;">第 0 / 0 頁</span>
     <button id="bottom-next-btn" disabled>下一頁</button>
   </footer>
+
 </div>
-
 <script>
+/* ============================================================
+   ⭐ 全域變數設定（所有頁面共享）
+============================================================ */
+const BASE_URL = "https://fapi.binance.com";
+const PAGE_SIZE = 100;          // 每頁顯示 100 個交易對
+const KLINE_LIMIT = 600;        // 一次抓 600 根 K 棒
 
-  /* ============================================================
-     全域變數設定
-  ============================================================ */
-  const BASE_URL = "https://fapi.binance.com";
-  const PAGE_SIZE = 100;     // 每頁顯示 100 檔
-  const KLINE_LIMIT = 600;   // 一次抓 600 根 K 線
+let allSymbols = [];            // 所有 USDT 永續合約的 symbol
+let tickerMap = {};             // symbol → { pct: 漲跌幅 }
+let currentPage = 0;            // 目前頁數
+let currentInterval = "15m";    // 目前選擇的時框
+let sortMode = "symbol";        // 排序方式：symbol / pct_desc
 
-  let allSymbols = [];
-  let tickerMap = {};
-  let currentPage = 0;
-  let currentInterval = "15m";
-  let sortMode = "symbol";
+let currentLoadToken = 0;       // 用於中止舊的載入流程
+let isLoading = false;          // 是否執行中
 
-  let currentLoadToken = 0;
-  let isLoading = false;
+const chartsEl = document.getElementById("charts");
+const statusEl = document.getElementById("status");
+const prevBtn = document.getElementById("prev-btn");
+const nextBtn = document.getElementById("next-btn");
+const pageInfoEl = document.getElementById("page-info");
+const bottomPrevBtn = document.getElementById("bottom-prev-btn");
+const bottomNextBtn = document.getElementById("bottom-next-btn");
+const bottomPageInfoEl = document.getElementById("bottom-page-info");
 
-  const chartsEl = document.getElementById("charts");
-  const statusEl = document.getElementById("status");
-  const prevBtn = document.getElementById("prev-btn");
-  const nextBtn = document.getElementById("next-btn");
-  const pageInfoEl = document.getElementById("page-info");
-  const bottomPrevBtn = document.getElementById("bottom-prev-btn");
-  const bottomNextBtn = document.getElementById("bottom-next-btn");
-  const bottomPageInfoEl = document.getElementById("bottom-page-info");
+/* ============================================================
+   ⭐ K 線快取：避免 LazyLoad 每次都重新打 API
+============================================================ */
+const klinesCache = new Map();  // key: `${symbol}_${interval}` → bars[]
 
-  // K 線快取避免重複請求
-  const klinesCache = new Map();
-
-  // Lazy Load 觀察器
-  let observer = null;
+/* ============================================================
+   ⭐ IntersectionObserver（Lazy Load圖表用）
+============================================================ */
+let observer = null;
 
 
-  /* ============================================================
-     首頁 → K 線頁切換
-  ============================================================ */
-  function goChartPage() {
-    document.getElementById("home").style.display = "none";
-    document.getElementById("chart-page").style.display = "block";
+/* ============================================================
+   ⭐ 首頁 → K 線頁 切換
+============================================================ */
+function goChartPage() {
+  document.getElementById("home").style.display = "none";    // 隱藏首頁
+  document.getElementById("chart-page").style.display = "block"; // 顯示 K 線頁
+}
+
+function goHome() {
+  // ⭐ 卸載所有 K 線圖（避免 Safari 記憶體爆掉）
+  for (const child of Array.from(chartsEl.children)) {
+    unmountChart(child);            // 卸載 canvas
+    if (observer) observer.unobserve(child); // 停止觀察
+  }
+  chartsEl.innerHTML = "";          // 清空列表
+
+  document.getElementById("home").style.display = "block";
+  document.getElementById("chart-page").style.display = "none";
+
+  statusEl.textContent = "尚未掃圖";
+}
+
+
+/* ============================================================
+   ⭐ 幣安 API：取得 USDT 永續 symbol 列表
+============================================================ */
+async function fetchFuturesSymbols() {
+  const res = await fetch(`${BASE_URL}/fapi/v1/exchangeInfo`);
+  const data = await res.json();
+
+  return data.symbols
+    .filter(s =>
+      s.contractType === "PERPETUAL" &&
+      s.quoteAsset === "USDT" &&
+      s.status === "TRADING"
+    )
+    .map(s => s.symbol)
+    .sort();  // 預設字母排序
+}
+
+
+/* ============================================================
+   ⭐ 幣安 API：取得所有 symbol 的 24h 漲跌幅
+============================================================ */
+async function fetch24hTickers(symbols) {
+  const res = await fetch(`${BASE_URL}/fapi/v1/ticker/24hr`);
+  const data = await res.json();
+
+  const set = new Set(symbols);
+  const map = {};
+
+  for (const t of data) {
+    if (!set.has(t.symbol)) continue;
+
+    map[t.symbol] = {
+      pct: parseFloat(t.priceChangePercent)  // 漲跌幅 %
+    };
   }
 
-  function goHome() {
-    // 卸載所有 chart
-    for (const child of Array.from(chartsEl.children)) {
-      unmountChart(child);
-      if (observer) observer.unobserve(child);
-    }
-    chartsEl.innerHTML = "";
+  return map;
+}
 
-    document.getElementById("home").style.display = "block";
-    document.getElementById("chart-page").style.display = "none";
 
-    statusEl.textContent = "尚未掃圖";
+/* ============================================================
+   ⭐ 幣安 API：取得 K 線資料（含快取）
+============================================================ */
+async function fetchKlines(symbol, interval, limit = KLINE_LIMIT) {
+
+  const key = `${symbol}_${interval}`;
+  if (klinesCache.has(key)) {
+    return klinesCache.get(key); // 直接回傳快取
   }
 
+  const url = `${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const res = await fetch(url);
+  const raw = await res.json();
 
-  /* ============================================================
-     幣安 API：取得 symbol 列表
-  ============================================================ */
-  async function fetchFuturesSymbols() {
-    const res = await fetch(`${BASE_URL}/fapi/v1/exchangeInfo`);
-    const data = await res.json();
+  const bars = raw.map(c => ({
+    time: c[0] / 1000,    // 轉成秒 (lightweight-charts 使用秒)
+    open: +c[1],
+    high: +c[2],
+    low: +c[3],
+    close: +c[4],
+    volume: +c[5],
+  }));
 
-    return data.symbols
-      .filter(s =>
-        s.contractType === "PERPETUAL" &&
-        s.quoteAsset === "USDT" &&
-        s.status === "TRADING"
-      )
-      .map(s => s.symbol)
-      .sort();
-  }
-
-  /* ============================================================
-     取得 24h 漲跌幅
-  ============================================================ */
-  async function fetch24hTickers(symbols) {
-    const res = await fetch(`${BASE_URL}/fapi/v1/ticker/24hr`);
-    const data = await res.json();
-
-    const set = new Set(symbols);
-    const map = {};
-
-    for (const t of data) {
-      if (!set.has(t.symbol)) continue;
-
-      const pct = parseFloat(t.priceChangePercent);
-      map[t.symbol] = { pct };
-    }
-
-    return map;
-  }
+  klinesCache.set(key, bars); // 存快取
+  return bars;
+}
 
 
-  /* ============================================================
-     取得 K 線資料（含快取）
-  ============================================================ */
-  async function fetchKlines(symbol, interval, limit = KLINE_LIMIT) {
-    const key = `${symbol}_${interval}`;
-    if (klinesCache.has(key)) return klinesCache.get(key);
+/* ============================================================
+   ⭐ 計算 MA（簡單移動平均）
+============================================================ */
+function calcMA(data, period) {
+  const out = [];
+  let sum = 0;
 
-    const url = `${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-    const res = await fetch(url);
-    const raw = await res.json();
+  for (let i = 0; i < data.length; i++) {
+    sum += data[i].close;
 
-    const bars = raw.map(c => ({
-      time: c[0] / 1000,
-      open: +c[1],
-      high: +c[2],
-      low: +c[3],
-      close: +c[4],
-      volume: +c[5],
-    }));
-
-    klinesCache.set(key, bars);
-    return bars;
-  }
-
-
-  /* ============================================================
-     MA 計算
-  ============================================================ */
-  function calcMA(data, period) {
-    const out = [];
-    let sum = 0;
-
-    for (let i = 0; i < data.length; i++) {
-      sum += data[i].close;
-
-      if (i >= period) {
-        sum -= data[i - period].close;
-      }
-
-      if (i >= period - 1) {
-        out.push({
-          time: data[i].time,
-          value: sum / period,
-        });
-      }
-    }
-    return out;
-  }
-
-
-  /* ============================================================
-     建立 K 線卡片（不畫圖，LazyLoad）
-  ============================================================ */
-  function buildCard(symbol, interval, container, changePct) {
-    const wrap = document.createElement("div");
-    wrap.className = "chart-wrapper";
-
-    const title = document.createElement("div");
-    title.className = "chart-title";
-
-    const left = document.createElement("span");
-    left.textContent = symbol;
-
-    if (typeof changePct === "number") {
-      const pctSpan = document.createElement("span");
-      pctSpan.className = "chart-pct";
-      pctSpan.classList.add(
-        changePct > 0 ? "up" : changePct < 0 ? "down" : "flat"
-      );
-      pctSpan.textContent =
-        (changePct >= 0 ? "+" : "") + changePct.toFixed(2) + "%";
-      left.appendChild(pctSpan);
+    if (i >= period) {
+      sum -= data[i - period].close;  // 移除最早的 close
     }
 
-    const right = document.createElement("span");
-    right.className = "chart-sub";
-    right.textContent = interval;
-
-    title.appendChild(left);
-    title.appendChild(right);
-
-    const chartDiv = document.createElement("div");
-    chartDiv.className = "chart";
-
-    wrap.appendChild(title);
-    wrap.appendChild(chartDiv);
-    container.appendChild(wrap);
-
-    wrap._symbol = symbol;
-    wrap._interval = interval;
-    wrap._pct = changePct;
-    wrap._chartDiv = chartDiv;
-    wrap._chartInstance = null;
-    wrap._loading = false;
-
-    if (observer) observer.observe(wrap);
-
-    return wrap;
-  }
-
-
-  /* ============================================================
-     Lazy Load：真正畫圖
-  ============================================================ */
-  async function mountChart(card) {
-    if (card._chartInstance || card._loading) return;
-    card._loading = true;
-
-    try {
-      const symbol = card._symbol;
-      const interval = card._interval;
-      const data = await fetchKlines(symbol, interval);
-
-      if (!card.isConnected) return;
-
-      const chart = LightweightCharts.createChart(card._chartDiv, {
-        width: card._chartDiv.clientWidth,
-        height: 300,
-        layout: {
-          background: { color: "#080808" },
-          textColor: "#ddd",
-        },
-        grid: {
-          vertLines: { color: "#222" },
-          horzLines: { color: "#222" },
-        },
+    if (i >= period - 1) {
+      out.push({
+        time: data[i].time,
+        value: sum / period,
       });
-
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: "#f7525f",
-        borderUpColor: "#f7525f",
-        wickUpColor: "#f7525f",
-        downColor: "#22ab94",
-        borderDownColor: "#22ab94",
-        wickDownColor: "#22ab94",
-      });
-
-      candleSeries.setData(data);
-
-      const volSeries = chart.addHistogramSeries({
-        priceScaleId: "volume",
-        color: "#888",
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-
-      volSeries.setData(
-        data.map(d => ({
-          time: d.time,
-          value: d.volume,
-          color: d.close >= d.open ? "#f7525f" : "#22ab94",
-        }))
-      );
-
-      chart.priceScale("volume").applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 }
-      });
-
-      const ma30 = calcMA(data, 30);
-      const ma45 = calcMA(data, 45);
-      const ma60 = calcMA(data, 60);
-
-      chart.addLineSeries({
-        color: "#f77c80", lineWidth: 1, priceLineVisible: false
-      }).setData(ma30);
-
-      chart.addLineSeries({
-        color: "#ffb74d", lineWidth: 1, priceLineVisible: false
-      }).setData(ma45);
-
-      chart.addLineSeries({
-        color: "#66bb6a", lineWidth: 1, priceLineVisible: false
-      }).setData(ma60);
-
-      const totalBars = data.length;
-      const to = totalBars - 1;
-      const from = Math.max(0, to - 120 - 15);
-
-      chart.timeScale().applyOptions({ rightOffset: 0 });
-      chart.timeScale().setVisibleLogicalRange({ from, to });
-
-      card._chartInstance = chart;
-    } catch (err) {
-      console.error("繪製圖表錯誤：", err);
-    } finally {
-      card._loading = false;
     }
   }
 
+  return out;
+}
 
-  /* ============================================================
-     Lazy Load：滑出後卸載 chart
-  ============================================================ */
-  function unmountChart(card) {
-    if (card._chartInstance) {
-      card._chartInstance.remove();
-      card._chartInstance = null;
-    }
-    if (card._chartDiv) card._chartDiv.innerHTML = "";
+
+/* ============================================================
+   ⭐ 建立 K 線卡片（不畫圖 → LazyLoad 進畫面後才畫）
+============================================================ */
+function buildCard(symbol, interval, container, changePct) {
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrapper";
+
+  /* ---------- 卡片抬頭（symbol + 漲跌幅） ---------- */
+  const title = document.createElement("div");
+  title.className = "chart-title";
+
+  const left = document.createElement("span");
+  left.textContent = symbol;
+
+  if (typeof changePct === "number") {
+    const pctSpan = document.createElement("span");
+    pctSpan.className = "chart-pct";
+
+    pctSpan.classList.add(
+      changePct > 0 ? "up" : changePct < 0 ? "down" : "flat"
+    );
+
+    pctSpan.textContent =
+      (changePct >= 0 ? "+" : "") + changePct.toFixed(2) + "%";
+
+    left.appendChild(pctSpan);
   }
 
-  /* ============================================================
-     分頁 UI 更新
-  ============================================================ */
-  function updatePaginationUI() {
-    const total = allSymbols.length;
-    const totalPages = total ? Math.ceil(total / PAGE_SIZE) : 0;
+  const right = document.createElement("span");
+  right.className = "chart-sub";
+  right.textContent = interval;
 
-    if (!totalPages) {
-      pageInfoEl.textContent = "第 0 / 0 頁";
-      bottomPageInfoEl.textContent = "第 0 / 0 頁";
-      prevBtn.disabled = nextBtn.disabled = true;
-      bottomPrevBtn.disabled = bottomNextBtn.disabled = true;
+  title.appendChild(left);
+  title.appendChild(right);
+
+  /* ---------- 放 chart 的 DOM ---------- */
+  const chartDiv = document.createElement("div");
+  chartDiv.className = "chart";
+
+  wrap.appendChild(title);
+  wrap.appendChild(chartDiv);
+
+  /* ⭐ 最後加入主容器 */
+  container.appendChild(wrap);
+
+  /* ---------- Lazy Load 需要的資料綁在 DOM 上 ---------- */
+  wrap._symbol = symbol;
+  wrap._interval = interval;
+  wrap._pct = changePct;
+  wrap._chartDiv = chartDiv;
+  wrap._chartInstance = null;
+  wrap._loading = false;
+
+  /* ⭐ 讓這個卡片被 IntersectionObserver 監控 */
+  if (observer) observer.observe(wrap);
+
+  return wrap;
+}
+</script>
+<script>
+/* ============================================================
+   ⭐ Lazy Load：實際建立 / 繪製 K 線圖
+   只有卡片進到畫面裡，才會真的畫圖（省記憶體）
+============================================================ */
+async function mountChart(card) {
+  // 如果已經有 chart 或正在載入，就不重複處理
+  if (card._chartInstance || card._loading) return;
+  card._loading = true;
+
+  try {
+    const symbol = card._symbol;          // 此卡片對應的交易對
+    const interval = card._interval;      // 此卡片對應的時框
+    const data = await fetchKlines(symbol, interval); // 取得 K 線資料（含快取）
+
+    if (!card.isConnected) {
+      // 如果卡片已經從畫面上被移除，就不用畫了
       return;
     }
 
-    const text = `第 ${currentPage + 1} / ${totalPages} 頁`;
-    pageInfoEl.textContent = text;
-    bottomPageInfoEl.textContent = text;
+    // 建立圖表
+    const chart = LightweightCharts.createChart(card._chartDiv, {
+      width: card._chartDiv.clientWidth,  // 寬度用卡片容器的寬
+      height: 300,                        // K 線高度（要改就改這裡）
+      layout: {
+        background: { color: "#080808" },
+        textColor: "#ddd",
+      },
+      grid: {
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
+      },
+    });
 
-    prevBtn.disabled = bottomPrevBtn.disabled = currentPage === 0;
-    nextBtn.disabled = bottomNextBtn.disabled = currentPage >= totalPages - 1;
+    /* ---------- K 線本體（蠟燭圖） ---------- */
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: "#f7525f",       // 上漲 K 棒填色
+      borderUpColor: "#f7525f",
+      wickUpColor: "#f7525f",
+      downColor: "#22ab94",     // 下跌 K 棒填色
+      borderDownColor: "#22ab94",
+      wickDownColor: "#22ab94",
+    });
+
+    candleSeries.setData(data); // 把 K 線資料丟進去
+
+    /* ---------- 成交量柱圖 ---------- */
+    const volSeries = chart.addHistogramSeries({
+      priceScaleId: "volume",   // 單獨一條 volume 價格軸
+      color: "#888",
+      priceLineVisible: false,  // 不顯示成交量的價格線
+      lastValueVisible: false,  // 不顯示右邊最新值標籤
+    });
+
+    volSeries.setData(
+      data.map(d => ({
+        time: d.time,
+        value: d.volume,
+        color: d.close >= d.open ? "#f7525f" : "#22ab94", // 紅綠柱
+      }))
+    );
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 }, // 上面 80% 給 K 線，下方 20% 給量
+    });
+
+    /* ---------- 均線 30 / 45 / 60 ---------- */
+    const ma30 = calcMA(data, 30);
+    const ma45 = calcMA(data, 45);
+    const ma60 = calcMA(data, 60);
+
+    // 30MA
+    chart.addLineSeries({
+      color: "#f77c80",
+      lineWidth: 1,
+      priceLineVisible: false,   // 不顯示價位線
+      lastValueVisible: false,   // 不顯示右側價位標籤
+    }).setData(ma30);
+
+    // 45MA
+    chart.addLineSeries({
+      color: "#ffb74d",
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    }).setData(ma45);
+
+    // 60MA
+    chart.addLineSeries({
+      color: "#66bb6a",
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    }).setData(ma60);
+
+    /* ---------- 設定預設可視範圍 + 右側留白 10 根 ---------- */
+    const totalBars = data.length;
+    if (totalBars > 0) {
+      const visibleBars = 120;  // 一眼大概看到 120 根 K 棒
+      const blankBars = 10;     // ⭐ 右邊多留 10 根空白
+
+      // from：往前推 120 根（不足就從 0 開始）
+      const from = Math.max(0, totalBars - visibleBars);
+      // to：在實際資料的右邊再多推 10 根（當作留白）
+      const to = totalBars + blankBars;
+
+      chart.timeScale().applyOptions({
+        rightOffset: blankBars,  // ⭐ 右側真的預留 10 根的空間
+      });
+
+      chart.timeScale().setVisibleLogicalRange({
+        from: from,
+        to: to,
+      });
+    }
+
+    // 把 chart 實例記錄在卡片上，之後可以移除
+    card._chartInstance = chart;
+  } catch (err) {
+    console.error("繪製圖表錯誤：", err);
+  } finally {
+    card._loading = false;
+  }
+}
+
+
+/* ============================================================
+   ⭐ Lazy Load：滑出畫面後卸載 chart（釋放記憶體）
+============================================================ */
+function unmountChart(card) {
+  if (card._chartInstance) {
+    card._chartInstance.remove();  // 移除 lightweight-charts 的 instance
+    card._chartInstance = null;
+  }
+  if (card._chartDiv) {
+    card._chartDiv.innerHTML = ""; // 清空 DOM 裡的 canvas
+  }
+}
+
+
+/* ============================================================
+   ⭐ 分頁 UI 更新（顯示第幾頁 & 按鈕 disabled 狀態）
+============================================================ */
+function updatePaginationUI() {
+  const total = allSymbols.length;                  // 總標的數量
+  const totalPages = total ? Math.ceil(total / PAGE_SIZE) : 0;
+
+  if (!totalPages) {
+    pageInfoEl.textContent = "第 0 / 0 頁";
+    bottomPageInfoEl.textContent = "第 0 / 0 頁";
+    prevBtn.disabled = nextBtn.disabled = true;
+    bottomPrevBtn.disabled = bottomNextBtn.disabled = true;
+    return;
   }
 
+  const text = `第 ${currentPage + 1} / ${totalPages} 頁`;
+  pageInfoEl.textContent = text;            // 上方顯示
+  bottomPageInfoEl.textContent = text;      // 下方顯示
 
-  /* ============================================================
-     載入指定頁面（Lazy Load 版本）
-  ============================================================ */
-  async function loadPage(pageIndex) {
-    const totalPages = Math.ceil(allSymbols.length / PAGE_SIZE);
-    if (pageIndex < 0 || pageIndex >= totalPages) return;
+  // 第一頁不能按上一頁，最後一頁不能按下一頁
+  prevBtn.disabled = bottomPrevBtn.disabled = currentPage === 0;
+  nextBtn.disabled = bottomNextBtn.disabled = currentPage >= totalPages - 1;
+}
 
-    const token = ++currentLoadToken;
-    currentPage = pageIndex;
+
+/* ============================================================
+   ⭐ 載入指定頁面（只建立卡片，不在這裡畫圖）
+============================================================ */
+async function loadPage(pageIndex) {
+  const totalPages = Math.ceil(allSymbols.length / PAGE_SIZE);
+  if (pageIndex < 0 || pageIndex >= totalPages) return;
+
+  const token = ++currentLoadToken; // 用來中止舊頁面的載入
+  currentPage = pageIndex;
+
+  updatePaginationUI();
+
+  // 先把舊頁面的圖表全部卸載 & 停止觀察
+  for (const child of Array.from(chartsEl.children)) {
+    if (observer) observer.unobserve(child);
+    unmountChart(child);
+  }
+  chartsEl.innerHTML = ""; // 清掉舊卡片
+
+  const start = pageIndex * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, allSymbols.length);
+  const targets = allSymbols.slice(start, end);
+
+  statusEl.textContent = `載入第 ${pageIndex + 1} 頁 …`;
+
+  for (const sym of targets) {
+    if (token !== currentLoadToken) return; // 若中途切頁，就停止繼續載入此頁
+
+    const pct = tickerMap[sym]?.pct ?? 0;
+    buildCard(sym, currentInterval, chartsEl, pct); // 只建立卡片，圖由 Lazy Load 決定何時畫
+  }
+
+  statusEl.textContent = `第 ${pageIndex + 1} 頁載入完成（往下滑會自動顯示 K 線）`;
+}
+
+
+/* ============================================================
+   ⭐ 掃圖主流程（從首頁開始）
+============================================================ */
+async function scan() {
+  if (isLoading) return;            // 避免重複點太快
+  isLoading = true;
+
+  // 從首頁讀取選項
+  currentInterval = document.getElementById("home-interval").value;
+  sortMode = document.getElementById("home-sort").value;
+
+  goChartPage();                    // 切換到 K 線頁
+  statusEl.textContent = "取得合約列表中…";
+
+  currentLoadToken++;               // 新的一輪載入
+
+  try {
+    // 只在第一次掃圖時，去抓 symbol 列表
+    if (allSymbols.length === 0) {
+      allSymbols = await fetchFuturesSymbols();
+    }
+
+    statusEl.textContent = "取得 24h 漲跌幅…";
+    tickerMap = await fetch24hTickers(allSymbols);
+
+    // 排序：依字母 or 依漲跌幅
+    if (sortMode === "symbol") {
+      allSymbols.sort();
+    } else {
+      allSymbols.sort(
+        (a, b) => (tickerMap[b]?.pct ?? -9999) - (tickerMap[a]?.pct ?? -9999)
+      );
+    }
 
     updatePaginationUI();
 
-    // 清掉舊頁的圖表
-    for (const child of Array.from(chartsEl.children)) {
-      if (observer) observer.unobserve(child);
-      unmountChart(child);
-    }
-    chartsEl.innerHTML = "";
-
-    const start = pageIndex * PAGE_SIZE;
-    const end = Math.min(start + PAGE_SIZE, allSymbols.length);
-    const targets = allSymbols.slice(start, end);
-
-    statusEl.textContent = `載入第 ${pageIndex + 1} 頁 …`;
-
-    for (const sym of targets) {
-      if (token !== currentLoadToken) return; // 中途中止
-
-      const pct = tickerMap[sym]?.pct ?? 0;
-      buildCard(sym, currentInterval, chartsEl, pct);
-    }
-
-    statusEl.textContent = `第 ${pageIndex + 1} 頁載入完成（往下滑會自動顯示 K 線）`;
+    isLoading = false;
+    loadPage(0); // 直接載入第一頁
+  } catch (err) {
+    console.error("掃圖發生錯誤:", err);
+    statusEl.textContent = "掃圖錯誤（請檢查 Console）。";
+    isLoading = false;
   }
+}
 
 
-  /* ============================================================
-     掃圖主流程（首頁 → K 線頁）
-  ============================================================ */
-  async function scan() {
-    if (isLoading) return;
-    isLoading = true;
+/* ============================================================
+   ⭐ IntersectionObserver 初始化（Lazy Load 的重點）
+============================================================ */
+if ("IntersectionObserver" in window) {
+  observer = new IntersectionObserver(
+    entries => {
+      for (const entry of entries) {
+        const card = entry.target;
 
-    currentInterval = document.getElementById("home-interval").value;
-    sortMode = document.getElementById("home-sort").value;
-
-    goChartPage();
-    statusEl.textContent = "取得合約列表中…";
-
-    currentLoadToken++;
-
-    try {
-      // 只取一次 symbol
-      if (allSymbols.length === 0) {
-        allSymbols = await fetchFuturesSymbols();
-      }
-
-      statusEl.textContent = "取得 24h 漲跌幅…";
-      tickerMap = await fetch24hTickers(allSymbols);
-
-      if (sortMode === "symbol") {
-        allSymbols.sort();
-      } else {
-        allSymbols.sort((a, b) => (tickerMap[b]?.pct ?? -999) - (tickerMap[a]?.pct ?? -999));
-      }
-
-      updatePaginationUI();
-
-      isLoading = false;
-      loadPage(0);
-
-    } catch (err) {
-      console.error("掃圖發生錯誤:", err);
-      statusEl.textContent = "掃圖錯誤（請檢查 Console）。";
-      isLoading = false;
-    }
-  }
-
-
-  /* ============================================================
-     Lazy Load 觀察器初始化
-  ============================================================ */
-  if ("IntersectionObserver" in window) {
-    observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          const card = entry.target;
-
-          if (entry.isIntersecting) {
-            mountChart(card);
-          } else {
-            unmountChart(card);
-          }
+        if (entry.isIntersecting) {
+          // 卡片進到螢幕範圍：畫圖
+          mountChart(card);
+        } else {
+          // 卡片離開螢幕範圍：卸載圖，省記憶體
+          unmountChart(card);
         }
-      },
-      { root: null, threshold: 0.1 }
-    );
-  } else {
-    console.warn("你的瀏覽器不支援 IntersectionObserver（LazyLoad 將停用）");
-  }
-
-
-  /* ============================================================
-     視窗大小調整 → 重新調整所有 chart 寬度
-  ============================================================ */
-  window.addEventListener("resize", () => {
-    const cards = document.querySelectorAll(".chart-wrapper");
-    cards.forEach(card => {
-      if (card._chartInstance && card._chartDiv) {
-        card._chartInstance.applyOptions({
-          width: card._chartDiv.clientWidth
-        });
       }
-    });
+    },
+    {
+      root: null,    // 以 viewport 為準
+      threshold: 0.1 // 有 10% 出現在畫面就算「進來」
+    }
+  );
+} else {
+  console.warn("你的瀏覽器不支援 IntersectionObserver（LazyLoad 將停用）");
+}
+
+
+/* ============================================================
+   ⭐ 視窗大小改變 → 調整所有圖表寬度
+============================================================ */
+window.addEventListener("resize", () => {
+  const cards = document.querySelectorAll(".chart-wrapper");
+  cards.forEach(card => {
+    if (card._chartInstance && card._chartDiv) {
+      card._chartInstance.applyOptions({
+        width: card._chartDiv.clientWidth, // 寬度跟著卡片容器
+      });
+    }
   });
+});
 
 
-  /* ============================================================
-     事件綁定
-  ============================================================ */
+/* ============================================================
+   ⭐ 事件綁定
+============================================================ */
 
-  // 首頁的「開始掃圖」
-  document.getElementById("home-start").addEventListener("click", scan);
+// 首頁的「掃圖」按鈕
+document.getElementById("home-start").addEventListener("click", scan);
 
-  // 分頁：上方
-  prevBtn.addEventListener("click", () => loadPage(currentPage - 1));
-  nextBtn.addEventListener("click", () => loadPage(currentPage + 1));
+// 上方分頁按鈕
+prevBtn.addEventListener("click", () => loadPage(currentPage - 1));
+nextBtn.addEventListener("click", () => loadPage(currentPage + 1));
 
-  // 分頁：下方
-  bottomPrevBtn.addEventListener("click", () => loadPage(currentPage - 1));
-  bottomNextBtn.addEventListener("click", () => loadPage(currentPage + 1));
+// 下方分頁按鈕
+bottomPrevBtn.addEventListener("click", () => loadPage(currentPage - 1));
+bottomNextBtn.addEventListener("click", () => loadPage(currentPage + 1));
 
 </script>
-
 </body>
 </html>
