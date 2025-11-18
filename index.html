@@ -2,7 +2,6 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>幣安 USDT 永續合約掃圖工具</title>
   <!-- 使用 4.2.3（有 addCandlestickSeries） -->
   <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
@@ -94,7 +93,6 @@
       width: 90%;
       box-sizing: border-box;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-      margin: 0 auto;
     }
 
     .chart-title {
@@ -113,7 +111,7 @@
 
     .chart {
       width: 100%;
-      height: 300px;
+      height: 300px; /* K 線圖高度 300px */
     }
 
     .chart-pct {
@@ -161,7 +159,9 @@
     <label for="interval">時框：</label>
     <select id="interval">
       <option value="15m">15 分 K</option>
+      <option value="30m">30 分 K</option>
       <option value="1h">1 小時 K</option>
+      <option value="2h">2 小時 K</option>
       <option value="4h">4 小時 K</option>
     </select>
 
@@ -213,10 +213,9 @@
     const intervalSelect = document.getElementById("interval");
     const sortSelect = document.getElementById("sort");
 
-    // K 線快取：避免重複打幣安 API
+    // ⭐ K 線快取：避免重複打幣安 API
     const klinesCache = new Map(); // key: `${symbol}_${interval}` -> bars[]
-
-    // IntersectionObserver（Lazy Load 用）
+    // ⭐ IntersectionObserver（Lazy Load 用）
     let observer = null;
 
     async function fetchFuturesSymbols() {
@@ -299,7 +298,7 @@
       return result;
     }
 
-    // 建立一張「卡片」但不畫圖（Lazy）
+    // ⭐ 建立一張「卡片」但不畫圖（Lazy）
     function buildCard(symbol, interval, container, changePct) {
       const wrap = document.createElement("div");
       wrap.className = "chart-wrapper";
@@ -351,7 +350,7 @@
       return wrap;
     }
 
-    // 真正建立 / 繪製 chart（卡片進入畫面時才叫）
+    // ⭐ 真正建立 / 繪製 chart（卡片進入畫面時才叫）
     async function mountChart(card) {
       if (card._chartInstance || card._loading) return;
       card._loading = true;
@@ -451,7 +450,7 @@
         if (ma45Data.length) ma45Series.setData(ma45Data);
         if (ma60Data.length) ma60Series.setData(ma60Data);
 
-        // 固定右邊預留空白，預設看到約 120 根 K 棒
+        // 固定右邊預留空白，並預設看到約 120 根 K 棒
         const totalBars = data.length;
         if (totalBars > 0) {
           const visibleBars = Math.min(120, totalBars);
@@ -469,7 +468,7 @@
       }
     }
 
-    // 卸載 chart，釋放記憶體（卡片滑出畫面時）
+    // ⭐ 卸載 chart，釋放記憶體（卡片滑出畫面時）
     function unmountChart(card) {
       if (card._chartInstance) {
         card._chartInstance.remove();   // 釋放 lightweight-charts 內部資源
@@ -596,7 +595,7 @@
       }
     }
 
-    // IntersectionObserver 初始化（Lazy Load）
+    // ⭐ IntersectionObserver 初始化（Lazy Load）
     if ("IntersectionObserver" in window) {
       observer = new IntersectionObserver((entries) => {
         for (const entry of entries) {
