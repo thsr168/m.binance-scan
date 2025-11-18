@@ -24,15 +24,15 @@
     }
 
     .home-title {
-      font-size: 26px;
+      font-size: 50px;
       font-weight: bold;
       margin: 40px 0 30px;
       text-align: center;
     }
 
     .home-row {
-      margin-bottom: 30px;
-      font-size: 20px;
+      margin-bottom: 60px;
+      font-size: 40px;
       text-align: center;
     }
 
@@ -49,8 +49,8 @@
 
     /* ⭐ 首頁大按鈕（掃圖） */
     .big-btn {
-      padding: 18px 26px;
-      font-size: 24px;
+      padding: 36px 54px;
+      font-size: 48px;
       border-radius: 12px;
       background: #1e1e1e;
       border: none;
@@ -616,6 +616,7 @@ function updatePaginationUI() {
    ⭐ 載入指定頁面（只建立卡片，不在這裡畫圖）
 ============================================================ */
 async function loadPage(pageIndex) {
+  window.scrollTo({ top: 0, behavior: "smooth" });     // ⭐ 每次換頁都把畫面滑回頂部
   const totalPages = Math.ceil(allSymbols.length / PAGE_SIZE);
   if (pageIndex < 0 || pageIndex >= totalPages) return;
 
@@ -644,8 +645,14 @@ async function loadPage(pageIndex) {
     buildCard(sym, currentInterval, chartsEl, pct); // 只建立卡片，圖由 Lazy Load 決定何時畫
   }
 
-  statusEl.textContent = `第 ${pageIndex + 1} 頁載入完成（往下滑會自動顯示 K 線）`;
-}
+    // ⭐ 計算頁面標的範圍（例如：1–100 / 538 檔）
+    const startNum = start + 1;
+    const endNum = end;
+    const totalNum = allSymbols.length;
+    
+    statusEl.textContent =
+      `第 ${pageIndex + 1} 頁（${startNum}–${endNum} / ${totalNum} 檔）`;
+  }
 
 
 /* ============================================================
