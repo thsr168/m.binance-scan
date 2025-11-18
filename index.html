@@ -1,3 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>幣安 USDT 永續合約掃圖工具</title>
+
+  <!-- lightweight-charts -->
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050505;
+      color: #eee;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    }
+
+    /* ======================== 首頁 ======================== */
+
+    #home {
+      padding: 20px;
+    }
+
+    .home-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .home-row {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    select {
+      padding: 12px 14px;
+      font-size: 18px;
+      border-radius: 6px;
+      border: 1px solid #666;
+      background: #111;
+      color: #eee;
+      width: 200px;
+    }
+
+    .big-btn {
+      padding: 16px 26px;
+      font-size: 22px;
+      border-radius: 8px;
+      border: none;
+      background: #1e1e1e;
+      color: #eee;
+      width: 100%;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .big-btn:hover {
+      background: #333;
+    }
+
+    /* ======================== K 線頁 ======================== */
+
+    #chart-page {
+      display: none;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(6px);
+      padding: 12px 16px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 18px;
+      border-radius: 6px;
+      background: #111;
+      border: 1px solid #555;
+      color: #eee;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      background: #222;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+    }
+
+    #charts {
+      padding: 12px 12px 80px 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    /* ⭐ K 線卡片靠右（左邊空白可滑動） */
+    .chart-wrapper {
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+      background: #080808;
+      width: 90%;
+      box-sizing: border-box;
+      margin-left: auto;
+      margin-right: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .chart-title {
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-sub {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .chart {
+      width: 100%;
+      height: 300px;
+    }
+
+    .chart-pct { margin-left: 6px; font-size: 12px; }
+    .chart-pct.up { color: #16c784; }
+    .chart-pct.down { color: #ff4d4d; }
+    .chart-pct.flat { color: #aaa; }
+
+    #bottom-nav {
+      padding: 14px 16px;
+      border-top: 1px solid #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      background: #050505;
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ======================== 首頁 ======================== -->
+
+<div id="home">
+  <div class="home-title">幣安合約掃圖工具</div>
+
+  <div class="home-row">
+    <label>選擇時框：</label><br>
+    <select id="home-interval">
+      <option value="15m">15 分 K</option>
+      <option value="30m">30 分 K</option>
+      <option value="1h">1 小時 K</option>
+      <option value="2h">2 小時 K</option>
+      <option value="4h">4 小時 K</option>
+    </select>
+  </div>
+
+  <div class="home-row">
+    <label>排序方式：</label><br>
+    <select id="home-sort">
+      <option value="symbol">依字母</option>
+      <option value="pct_desc">依 24h 漲跌幅</option>
+    </select>
+  </div>
+
+  <button class="big-btn" id="home-start">開始掃圖</button>
+</div>
+
+
+<!-- ======================== K 線頁 ======================== -->
+
+<div id="chart-page">
+  <header>
+    <button onclick="goHome()">⬅ 返回首頁</button>
+
+    <button id="prev-btn" disabled>上一頁</button>
+    <button id="next-btn" disabled>下一頁</button>
+    <span id="page-info" style="font-size:12px;color:#aaa;">第 0 / 0 頁</span>
+
+    <div id="status" style="margin-left:auto;font-size:12px;color:#aaa;">尚未掃圖</div>
+  </header>
+
+  <div id="charts"></div>
+
+  <footer id="bottom-nav">
+    <button id="bottom-prev-btn" disabled>上一頁</button>
+    <span id="bottom-page-info" style="font-size:12px;color:#aaa;">第 0 / 0 頁</span>
+    <button id="bottom-next-btn" disabled>下一頁</button>
+  </footer>
+</div>
+
+<script>
+
+  /* ============================================================
+     全域變數設定
+  ============================================================ */
+  const BASE_URL = "https://fapi.binance.com";
+  const PAGE_SIZE = 100;     // 每頁顯示 100 檔
+  const KLINE_LIMIT = 600;   // 一次抓 600 根 K 線
+
+  let allSymbols = [];
+  let tickerMap = {};
+  let currentPage = 0;
+  let currentInterval = "15m";
+  let sortMode = "symbol";
+
+  let currentLoadToken = 0;
+  let isLoading = false;
+
+  const chartsEl = document.getElementById("charts");
+  const statusEl = document.getElementById("status");
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const pageInfoEl = document.getElementById("page-info");
+  const bottomPrevBtn = document.getElementById("bottom-prev-btn");
+  const bottomNextBtn = document.getElementById("bottom-next-btn");
+  const bottomPageInfoEl = document.getElementById("bottom-page-info");
+
+  // K 線快取避免重複請求
+  const klinesCache = new Map();
+
+  // Lazy Load 觀察器
+  let observer = null;
+
+
+  /* ============================================================
+     首頁 → K 線頁切換
+  ============================================================ */
+  function goChartPage() {
+    document.getElementById("home").style.display = "none";
+    document.getElementById("chart-page").style.display = "block";
+  }
+
+  function goHome() {
+    // 卸載所有 chart
+    for (const child of Array.from(chartsEl.children)) {
+      unmountChart(child);
+      if (observer) observer.unobserve(child);
+    }
+    chartsEl.innerHTML = "";
+
+    document.getElementById("home").style.display = "block";
+    document.getElementById("chart-page").style.display = "none";
+
+    statusEl.textContent = "尚未掃圖";
+  }
+
+
+  /* ============================================================
+     幣安 API：取得 symbol 列表
+  ============================================================ */
+  async function fetchFuturesSymbols() {
+    const res = await fetch(`${BASE_URL}/fapi/v1/exchangeInfo`);
+    const data = await res.json();
+
+    return data.symbols
+      .filter(s =>
+        s.contractType === "PERPETUAL" &&
+        s.quoteAsset === "USDT" &&
+        s.status === "TRADING"
+      )
+      .map(s => s.symbol)
+      .sort();
+  }
+
+  /* ============================================================
+     取得 24h 漲跌幅
+  ============================================================ */
+  async function fetch24hTickers(symbols) {
+    const res = await fetch(`${BASE_URL}/fapi/v1/ticker/24hr`);
+    const data = await res.json();
+
+    const set = new Set(symbols);
+    const map = {};
+
+    for (const t of data) {
+      if (!set.has(t.symbol)) continue;
+
+      const pct = parseFloat(t.priceChangePercent);
+      map[t.symbol] = { pct };
+    }
+
+    return map;
+  }
+
+
+  /* ============================================================
+     取得 K 線資料（含快取）
+  ============================================================ */
+  async function fetchKlines(symbol, interval, limit = KLINE_LIMIT) {
+    const key = `${symbol}_${interval}`;
+    if (klinesCache.has(key)) return klinesCache.get(key);
+
+    const url = `${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    const res = await fetch(url);
+    const raw = await res.json();
+
+    const bars = raw.map(c => ({
+      time: c[0] / 1000,
+      open: +c[1],
+      high: +c[2],
+      low: +c[3],
+      close: +c[4],
+      volume: +c[5],
+    }));
+
+    klinesCache.set(key, bars);
+    return bars;
+  }
+
+
+  /* ============================================================
+     MA 計算
+  ============================================================ */
+  function calcMA(data, period) {
+    const out = [];
+    let sum = 0;
+
+    for (let i = 0; i < data.length; i++) {
+      sum += data[i].close;
+
+      if (i >= period) {
+        sum -= data[i - period].close;
+      }
+
+      if (i >= period - 1) {
+        out.push({
+          time: data[i].time,
+          value: sum / period,
+        });
+      }
+    }
+    return out;
+  }
+
+
+  /* ============================================================
+     建立 K 線卡片（不畫圖，LazyLoad）
+  ============================================================ */
+  function buildCard(symbol, interval, container, changePct) {
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrapper";
+
+    const title = document.createElement("div");
+    title.className = "chart-title";
+
+    const left = document.createElement("span");
+    left.textContent = symbol;
+
+    if (typeof changePct === "number") {
+      const pctSpan = document.createElement("span");
+      pctSpan.className = "chart-pct";
+      pctSpan.classList.add(
+        changePct > 0 ? "up" : changePct < 0 ? "down" : "flat"
+      );
+      pctSpan.textContent =
+        (changePct >= 0 ? "+" : "") + changePct.toFixed(2) + "%";
+      left.appendChild(pctSpan);
+    }
+
+    const right = document.createElement("span");
+    right.className = "chart-sub";
+    right.textContent = interval;
+
+    title.appendChild(left);
+    title.appendChild(right);
+
+    const chartDiv = document.createElement("div");
+    chartDiv.className = "chart";
+
+    wrap.appendChild(title);
+    wrap.appendChild(chartDiv);
+    container.appendChild(wrap);
+
+    wrap._symbol = symbol;
+    wrap._interval = interval;
+    wrap._pct = changePct;
+    wrap._chartDiv = chartDiv;
+    wrap._chartInstance = null;
+    wrap._loading = false;
+
+    if (observer) observer.observe(wrap);
+
+    return wrap;
+  }
+
+
+  /* ============================================================
+     Lazy Load：真正畫圖
+  ============================================================ */
+  async function mountChart(card) {
+    if (card._chartInstance || card._loading) return;
+    card._loading = true;
+
+    try {
+      const symbol = card._symbol;
+      const interval = card._interval;
+      const data = await fetchKlines(symbol, interval);
+
+      if (!card.isConnected) return;
+
+      const chart = LightweightCharts.createChart(card._chartDiv, {
+        width: card._chartDiv.clientWidth,
+        height: 300,
+        layout: {
+          background: { color: "#080808" },
+          textColor: "#ddd",
+        },
+        grid: {
+          vertLines: { color: "#222" },
+          horzLines: { color: "#222" },
+        },
+      });
+
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: "#f7525f",
+        borderUpColor: "#f7525f",
+        wickUpColor: "#f7525f",
+        downColor: "#22ab94",
+        borderDownColor: "#22ab94",
+        wickDownColor: "#22ab94",
+      });
+
+      candleSeries.setData(data);
+
+      const volSeries = chart.addHistogramSeries({
+        priceScaleId: "volume",
+        color: "#888",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+
+      volSeries.setData(
+        data.map(d => ({
+          time: d.time,
+          value: d.volume,
+          color: d.close >= d.open ? "#f7525f" : "#22ab94",
+        }))
+      );
+
+      chart.priceScale("volume").applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 }
+      });
+
+      const ma30 = calcMA(data, 30);
+      const ma45 = calcMA(data, 45);
+      const ma60 = calcMA(data, 60);
+
+      chart.addLineSeries({
+        color: "#f77c80", lineWidth: 1, priceLineVisible: false
+      }).setData(ma30);
+
+      chart.addLineSeries({
+        color: "#ffb74d", lineWidth: 1, priceLineVisible: false
+      }).setData(ma45);
+
+      chart.addLineSeries({
+        color: "#66bb6a", lineWidth: 1, priceLineVisible: false
+      }).setData(ma60);
+
+      const totalBars = data.length;
+      const to = totalBars - 1;
+      const from = Math.max(0, to - 120 - 15);
+
+      chart.timeScale().applyOptions({ rightOffset: 0 });
+      chart.timeScale().setVisibleLogicalRange({ from, to });
+
+      card._chartInstance = chart;
+    } catch (err) {
+      console.error("繪製圖表錯誤：", err);
+    } finally {
+      card._loading = false;
+    }
+  }
+
+
+  /* ============================================================
+     Lazy Load：滑出後卸載 chart
+  ============================================================ */
+  function unmountChart(card) {
+    if (card._chartInstance) {
+      card._chartInstance.remove();
+      card._chartInstance = null;
+    }
+    if (card._chartDiv) card._chartDiv.innerHTML = "";
+  }
+
   /* ============================================================
      分頁 UI 更新
   ============================================================ */
