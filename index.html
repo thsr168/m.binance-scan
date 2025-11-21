@@ -1,4 +1,5 @@
 <!--20251120_v008 = 更改標的與漲跌幅字體變大-->
+<!--20251121_v009 = 更改鼠標移動顯示時間-->
 
 
 <!DOCTYPE html>
@@ -481,6 +482,19 @@ async function mountChart(card) {
         vertLines: { color: "#222" },
         horzLines: { color: "#222" },
       },
+	timeScale: {
+  timeVisible: true,
+  secondsVisible: false,
+
+  // ⭐ 加上台灣時間 UTC+8 格式化
+  tickMarkFormatter: (time, tickMarkType, locale) => {
+    const date = new Date(time * 1000);             
+    const taiwan = new Date(date.getTime() + 0 * 60 * 60 * 1000); // 加 8 小時
+    const h = taiwan.getHours().toString().padStart(2, '0');
+    const m = taiwan.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;   // 顯示台灣時間 (HH:MM)
+  }
+},
     });
 
     /* ---------- K 線本體（蠟燭圖） ---------- */
@@ -494,6 +508,22 @@ async function mountChart(card) {
     });
 
     candleSeries.setData(data); // 把 K 線資料丟進去
+	
+	// ⭐ 在這裡插入台灣時間 formatter
+chart.applyOptions({
+  localization: {
+    timeFormatter: (time) => {
+      const date = new Date(time * 1000);
+      const tw = new Date(date.getTime() + 0 * 60 * 60 * 1000);
+      const yyyy = tw.getFullYear();
+      const mm = (tw.getMonth() + 1).toString().padStart(2, "0");
+      const dd = tw.getDate().toString().padStart(2, "0");
+      const hh = tw.getHours().toString().padStart(2, "0");
+      const mi = tw.getMinutes().toString().padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+  }
+});
 
     /* ---------- 成交量柱圖 ---------- */
     const volSeries = chart.addHistogramSeries({
