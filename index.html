@@ -1,13 +1,14 @@
 <!--20251120_v008 = 更改標的與漲跌幅字體變大-->
 <!--20251121_v009 = 更改鼠標移動顯示時間-->
-<!--20251210_v010 = 新增突破篩選小工具，最近20根K內，有創過最近120根新高的標的-->
+<!--20251210_v010 = 新增突破篩選小工具、最近10根K內，有創過最近120根新高的標的-->
+<!--20251211_v011 = 新增突破箭頭，更改時區為台灣時區-->
 
 
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幣安 USDT 永續合約掃圖工具</title>
+  <title>幣安USDT永續合約小工具_v011</title>
   <!-- lightweight-charts -->
   <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 
@@ -181,7 +182,7 @@
 
 <!-- ======================== 首頁 ======================== -->
 <div id="home">
-  <div class="home-title">幣安合約掃圖工具</div>
+  <div class="home-title">幣安合約小工具_v011</div>
 
   <div class="home-row">
     <label>選擇模式：</label>
@@ -346,26 +347,49 @@
     return out;
   }
 
-  /* ========== 突破條件：最近 20 根內，創最近 120 根新高 ========== */
-  function checkBreakoutLast20Of120(data) {
+  /* ========== 突破條件：最近 10 根內，創最近 120 根新高 ========== */
+  function checkBreakoutLast10Of120(data) {
     if (!data || data.length < 120) return false;
 
     const len = data.length;
     const recent120 = data.slice(len - 120);
-    const recent20  = recent120.slice(-20);
+    const recent10  = recent120.slice(-10);
 
     let h120 = -Infinity;
     for (const bar of recent120) {
       if (bar.high > h120) h120 = bar.high;
     }
 
-    let h20 = -Infinity;
-    for (const bar of recent20) {
-      if (bar.high > h20) h20 = bar.high;
+    let h10 = -Infinity;
+    for (const bar of recent10) {
+      if (bar.high > h10) h10 = bar.high;
     }
 
-    return h20 === h120;
+    return h10 === h120;
   }
+	/* ============================================================
+   ⭐ 找出突破發生在 recent 10 根內的哪一根 K
+============================================================ */
+function findBreakoutIndex(data) {
+  if (!data || data.length < 120) return null;
+
+  const len = data.length;
+  const recent120 = data.slice(len - 120);
+  const recent10  = recent120.slice(-10);
+
+  let h120 = -Infinity;
+  for (const bar of recent120) {
+    if (bar.high > h120) h120 = bar.high;
+  }
+
+  for (let i = 0; i < recent10.length; i++) {
+    if (recent10[i].high === h120) {
+      return (len - 10) + i;  
+    }
+  }
+
+  return null;
+}
 
   async function filterBreakoutSymbols(symbols, interval) {
     const result = [];
@@ -373,7 +397,7 @@
     for (const sym of symbols) {
       try {
         const data = await fetchKlines(sym, interval, KLINE_LIMIT);
-        if (checkBreakoutLast20Of120(data)) {
+        if (checkBreakoutLast10Of120(data)) {
           result.push(sym);
         }
       } catch (e) {
@@ -458,31 +482,33 @@
         timeScale: {
           timeVisible: true,
           secondsVisible: false,
-          tickMarkFormatter: (time, tickMarkType, locale) => {
-            const date = new Date(time * 1000);
-            const tw = new Date(date.getTime()); // 這裡要加時區可以自己調整
-            const h = tw.getHours().toString().padStart(2, "0");
-            const m = tw.getMinutes().toString().padStart(2, "0");
-            return `${h}:${m}`;
-          }
-        },
+          tickMarkFormatter: (time) => {
+  const date = new Date(time * 1000);
+  const tw = new Date(date.getTime());
+  const h = tw.getHours().toString().padStart(2, "0");
+  const m = tw.getMinutes().toString().padStart(2, "0");
+  return `${h}:${m}`;
+},
+},
+
         rightPriceScale: { visible: true },
       });
 
       chart.applyOptions({
-        localization: {
-          timeFormatter: (time) => {
-            const date = new Date(time * 1000);
-            const tw = new Date(date.getTime());
-            const yyyy = tw.getFullYear();
-            const mm = (tw.getMonth() + 1).toString().padStart(2, "0");
-            const dd = tw.getDate().toString().padStart(2, "0");
-            const hh = tw.getHours().toString().padStart(2, "0");
-            const mi = tw.getMinutes().toString().padStart(2, "0");
-            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
-          }
-        }
-      });
+  localization: {
+    timeFormatter: (time) => {
+      const date = new Date(time * 1000);
+      const tw = new Date(date.getTime());
+      const yyyy = tw.getFullYear();
+      const mm = (tw.getMonth() + 1).toString().padStart(2, "0");
+      const dd = tw.getDate().toString().padStart(2, "0");
+      const hh = tw.getHours().toString().padStart(2, "0");
+      const mi = tw.getMinutes().toString().padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+  }
+});
+
 
       const candleSeries = chart.addCandlestickSeries({
         upColor: "#f7525f",
@@ -493,6 +519,27 @@
         wickDownColor: "#22ab94",
       });
       candleSeries.setData(data);
+/* ============================================================
+   ⭐ 新增突破箭頭（只在篩選模式顯示）
+============================================================ */
+if (currentMode === "filter") {
+  const breakoutIndex = findBreakoutIndex(data);
+
+  if (breakoutIndex !== null) {
+    const bar = data[breakoutIndex];
+
+    const marker = {
+      time: bar.time,
+      position: "aboveBar",
+      color: "yellow",
+      shape: "arrowDown",
+      text: "突破",
+    };
+
+    candleSeries.setMarkers([marker]);
+  }
+}
+
 
       const volSeries = chart.addHistogramSeries({
         priceScaleId: "volume",
@@ -666,7 +713,7 @@
         allSymbols = breakoutSymbols;
 
         if (allSymbols.length === 0) {
-          statusEl.textContent = `沒有符合「最近 20 根內創最近 120 根新高」條件的標的（${currentInterval}）。`;
+          statusEl.textContent = `沒有符合「最近 10 根內創最近 120 根新高」條件的標的（${currentInterval}）。`;
           isLoading = false;
           chartsEl.innerHTML = "";
           updatePaginationUI();
